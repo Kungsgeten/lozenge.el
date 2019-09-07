@@ -8,7 +8,7 @@ Pollen uses a /lozenge/ to mark the start of a command. A lozenge looks like thi
 
 * Setup
 
-Get  =org-lozenge= into your Emacs and require it. You also need [[https://github.com/magnars/dash.el][dash]] and [[https://github.com/philjackson/xmlgen][xmlgen]].
+Get  =org-lozenge= into your Emacs and require it. You also need [[https://github.com/magnars/dash.el][dash]] and [[https://github.com/philjackson/xmlgen][xmlgen]]. Activate with =M-x org-lozenge-enable= (or call that function in your init-file).
 
 The ◊-character can be a bit cumbersome to insert, since it isn't bound to any key on the keyboard. =org-lozenge= provides a command named =org-lozenge-insert-lozenge=, which you can run with =M-x=. Now I suggest that you bind this command to a key. I myself use [[https://www.emacswiki.org/emacs/KeyChord][key-chord]] and bind the command to =,,=. There's also a command to insert the ⟠-character, named =org-lozenge-insert-half-lozenge=.
 
@@ -75,7 +75,7 @@ Now you could use =◊fa{coffee}= to get the icon. If you want a solid icon, you
 
 I like to play contract bridge (a card game) and often I want to notate a hand of cards. This is usually done by writing suit symbols followed by the cards, similar to this: ♠KJ82 ♥AK3 ♦J8532 ♣Q. Let's say I want a function for that.
 
-#+BEGIN_SRC
+#+BEGIN_SRC emacs-lisp
   (defun loz/hand ()
     '(span :class "hand"
            (span :class "suit" "♠" "%s")
@@ -86,7 +86,7 @@ I like to play contract bridge (a card game) and often I want to notate a hand o
 
 Now I could write =◊hand[KJ82][AK3][J8532][Q]=. The reason for using format-args (instead of arguments directly to the function) is if I want to put extra =org-mode= syntax into the cards. Like =◊hand[AKxxx][\mdash][KQJT2][Jxx]=. However we could make the function a bit easier to use by using a single string argument, and the function itself splits it into format-args:
 
-#+BEGIN_SRC
+#+BEGIN_SRC emacs-lisp
   (defun loz/hand2 (hand-text)
     (org-lozenge-list-to-org-html
      `(span :class "hand"
