@@ -1,40 +1,40 @@
-#+TITLE:Org-Lozenge
+#+TITLE:Lozenge
 
 * Introduction
 
-[[https://pollenpub.com][Pollen]] is a publishing system that helps authors make functional and beautiful digital books. When you write documents in Pollen you usually write regular text (like in =org-mode= or Markdown), but you can also use [[https://docs.racket-lang.org/pollen/pollen-command-syntax.html][a special type of syntax]] to call functions and run code within the document. Emacs' =org-mode= has lots of functionality for calling functions etc as well, but I liked the idea of Pollen's command syntax and decided to implement something similar in =org-mode=. The primary use case is when writing documents for HTML export.
+[[https://pollenpub.com][Pollen]] is a publishing system that helps authors make functional and beautiful digital books. When you write documents in Pollen you usually write regular text (like in =org-mode= or Markdown), but you can also use [[https://docs.racket-lang.org/pollen/pollen-command-syntax.html][a special type of syntax]] to call functions and run code within the document. This package makes that style of syntax available for Emacs. Pollen uses a /lozenge/ to mark the start of a command. A lozenge looks like this: ◊. That's why this package is named =lozenge=.
 
-Pollen uses a /lozenge/ to mark the start of a command. A lozenge looks like this: ◊. That's why this package is named =org-lozenge=.
+The primary target for =lozenge= was to use it in =org-mode= when exporting to HTML. However =lozenge= can be used in any major-mode.
 
 * Setup
 
-Get  =org-lozenge= into your Emacs and require it. You also need [[https://github.com/magnars/dash.el][dash]] and [[https://github.com/philjackson/xmlgen][xmlgen]]. Activate with =M-x org-lozenge-enable= (or call that function in your init-file).
+Get  =lozenge= into your Emacs and require it. You also need [[https://github.com/magnars/dash.el][dash]] and [[https://github.com/philjackson/xmlgen][xmlgen]]. To make =lozenge= work on =org-mode= export, use =M-x lozenge-org-export-enable= (or call that function in your init-file). There's a similar command available for =markdown-mode= which you can activate with =M-x lozenge-markdown-export-enable=. If you're not using =org-mode= org =markdown-mode= but still want to use =lozenge= you can name your file in a special way. Let's say that you want a file named =my-file.tex= and that you want to use the =lozenge= functionality in it. Simply rename the file to =my-file.loz.tex=. Running =M-x lozenge-export= will evaluate all lozenges and output the result to =my-file.tex=.
 
-The ◊-character can be a bit cumbersome to insert, since it isn't bound to any key on the keyboard. =org-lozenge= provides a command named =org-lozenge-insert-lozenge=, which you can run with =M-x=. Now I suggest that you bind this command to a key. I myself use [[https://www.emacswiki.org/emacs/KeyChord][key-chord]] and bind the command to =,,=. There's also a command to insert the ⟠-character, named =org-lozenge-insert-half-lozenge=.
+The ◊-character can be a bit cumbersome to insert, since it isn't bound to any key on the keyboard. =lozenge= provides a command named =lozenge-insert-lozenge=, which you can run with =M-x=. Now I suggest that you bind this command to a key. I myself use [[https://www.emacswiki.org/emacs/KeyChord][key-chord]] and bind the command to =,,=. There's also a command to insert the ⟠-character, named =lozenge-insert-half-lozenge=.
 
-* Usage
+* Syntax
 
-At its most basic, you could write something like this =◊(upcase "hello")=. The ◊-sexp will be evaluated by Emacs, and the result will be inserted in the document when you export. If the result is a string or number, it will be inserted as is. If the result is a list it will be converted into an HTML structure, but  more about this later.
+At its most basic, you could write something like this =◊(upcase "hello")=. The ◊-sexp will be evaluated by Emacs, and the result will be inserted in the document when you export. If the result is a string or number, it will be inserted as is. If the result is a list it will get special treatment: in =org-mode= (with the ='html backend) and =markdown-mode= it is exported to HTML. More about this later.
 
-If you want to insert the value of a variable, you could do that as well: =◊user-full-name=. You could even define your own variables in your document and use them later: =◊(defconst loz/my-var "This is my variable")=. Notice that I used the prefix =loz/= before =my-var=. The reason for this is to avoid name conflicts with other parts of Emacs, but actually the =loz/= prefix gets special treatment by =org-lozenge=. I can later type =◊my-var= and when exporting =org-lozenge= will check if there's a symbol named =loz/my-var= and use that (if there isn't, it will use the plain =my-var=). This works with functions too. Therefore it is a good idea to use the =loz/= prefix when defining functions/variables which you'll use in =org-lozenge= documents.
+If you want to insert the value of a variable, you could do that as well: =◊user-full-name=. You could even define your own variables in your document and use them later: =◊(defconst loz/my-var "This is my variable")=. Notice that I used the prefix =loz/= before =my-var=. The reason for this is to avoid name conflicts with other parts of Emacs, but actually the =loz/= prefix gets special treatment by =lozenge=. I can later type =◊my-var= and when exporting =lozenge= will check if there's a symbol named =loz/my-var= and use that (if there isn't, it will use the plain =my-var=). This works with functions too. You can also use other prefixes to futher avoid clashes. If you're in a project named =foo= you can use a prefix named =foo/loz/=. Another alternative is to make it specific to the current major-mode, for instance =loz/org-mode/=. See the documentation on the function =lozenge-real-sexp= for more information.
 
 An alternate syntax to call a function is like this: =◊upcase{uppercased text}=. This takes the text between the braces and sends it (as a string) to the *first* parameter of the function. Its equivalent to writing =◊(upcase "uppercased text")=. You can also mix, so you could do =◊(upcase){uppercased text}= if you like. A nice thing with this mixed variant is that it allows for additional arguments to the function. So you could do something like =◊(string-trim "-" "."){-Yeah.}=, which would be the same as writing =◊(string-trim "-Yeah." "-" ".")=. This is especially useful if you use/write functions with optional arguments.
 
-Another syntax feature has to do with format strings. In Emacs there's a function named =format= which replaces parts of a string with arguments: =(format "Hello %s!" user-full-name)=. In =org-lozenge= you can use /format brackets/ to send text as arguments to the format function. If the result of the ◊-sexp is a string, that string will be sent to =format= along with the arguments you write. A very simple example would be =◊"Hello %s, nice %s."[handsome lad][hat]=. In reality you'd probably have a function which generates the format string though, and you supply the arguments.
+Another syntax feature has to do with format strings. In Emacs there's a function named =format= which replaces parts of a string with arguments: =(format "Hello %s!" user-full-name)=. In =lozenge= you can use /format brackets/ to send text as arguments to the format function. If the result of the ◊-sexp is a string, that string will be sent to =format= along with the arguments you write. A very simple example would be =◊"Hello %s, nice %s."[handsome lad][hat]=. In reality you'd probably have a function which generates the format string though, and you supply the arguments.
 
-Since =org-lozenge= is focused on HTML export, it provides some extra features to create HTML structures. If the result of the ◊-sexp is a list, it will be converted into HTML. =org-lozenge= uses the [[https://www.emacswiki.org/emacs/XmlGen][xmlgen]] package to do this. You could for instance write =◊'(h2 :class "subtitle" "My subtitle")=. You could also write a function which returns a list, and that list will be converted into HTML. In =org-mode= inline HTML is written like this: ~@@html:<h2 class="subtitle">My subtitle</h2>@@~. All other =org-mode= syntax (like =*bold*= or =/italics/=) are ignored here. To remedy this =org-lozenge= uses the /format brackets/ a bit different when the result of the ◊-sexp is a list. You could write =◊'(h2 :class "subtitle" "%s")[My *bold* subtitle]= which in =org-mode= syntax would look like ~@@html:<h2 class="subtitle">@@My *bold* subtitle@@html:</h2>@@~. For details about how this is implemented, see the function =org-lozenge-list-to-org-html=.
+If the result of the ◊-sexp is a list, it gets special treatment depending on the current major-mode. In =org-mode= it also depends on the export backend. Check the variable ==lozenge-list-processing-functions= for more info. By default =org-mode= with ='html= backend, and =markdown-mode=, converts the list to HTML. =lozenge= uses the [[https://www.emacswiki.org/emacs/XmlGen][xmlgen]] package to do this. You could for instance write =◊'(h2 :class "subtitle" "My subtitle")=. You could also write a function which returns a list, and that list will be converted into HTML. In =org-mode= inline HTML is written like this: ~@@html:<h2 class="subtitle">My subtitle</h2>@@~. All other =org-mode= syntax (like =*bold*= or =/italics/=) are ignored here. To remedy this =lozenge= uses the /format brackets/ a bit different when the result of the ◊-sexp is a list. You could write =◊'(h2 :class "subtitle" "%s")[My *bold* subtitle]= which in =org-mode= syntax would look like ~@@html:<h2 class="subtitle">@@My *bold* subtitle@@html:</h2>@@~. For details about how this is implemented, see the function =lozenge-list-to-org-html=.
 
 When you use a quoted list as the ◊-sexp, the text braces behaves a bit differently. The text will be appended as the last argument of the list, as a format string. In the previous example we wrote =◊'(h2 :class "subtitle" "%s")[My *bold* subtitle]=. We could instead have written =◊'(h2 :class "subtitle"){My *bold* subtitle.}=.
 
-Another common use-case is to just add a div/span tag with a class to a set of text. =org-lozenge= has special syntax for this. If the =car= of your ◊-sexp is a keyword (like =:blue=) then that keyword will be used as a class. If you want a =span= tag you write like this =◊(:blue This is blue text in a span)= and if you want a =div= tag you use the text braces like this =◊(:blue){This is a blue div}=. You can add more than one class this way by separating the classes with dots: =◊(:blue.big This text is blue and big)=.
+Another common use-case is to just add a div/span tag with a class to a set of text. =lozenge= has special syntax for this. If the =car= of your ◊-sexp is a keyword (like =:blue=) then that keyword will be used as a class. If you want a =span= tag you write like this =◊(:blue This is blue text in a span)= and if you want a =div= tag you use the text braces like this =◊(:blue){This is a blue div}=. You can add more than one class this way by separating the classes with dots: =◊(:blue.big This text is blue and big)=.
 
-* Syntax summary
+** Syntax summary
 
 1. =◊sexp{text arg}[format arg 1][format arg 2][...]= (the text args and format args are optional).
    - If there's a symbol named =loz/sexp= it will be used instead of =sexp=.
    - If =sexp= is a function call (or a symbol), the =text arg= is used as the first argument when calling the function.
    - When =sexp= evaluates to a string, the following code will be run =(apply 'format sexp-result format-args)=.
-   - When =sexp= evaluates to a list, it will be sent to =org-lozenge-list-to-org-html=. Any =%s= in the list will be replaced by (in order) the =format-args=.
+   - When =sexp= evaluates to a list, it will be treated according to =lozenge-list-processing-functions=. Any =%s= in the list will be replaced by (in order) the =format-args=.
 2. =◊'(list){text arg}[format arg 1][format arg 2][...]= (the text args and format args are optional).
    - When the ◊-sexp is written as a quoted list, the =text arg= is appended to the =list=. It also converts it into a  =format arg= (the last one, if you have others).
 3. =◊(:class1.class2.class3 Some text)=
@@ -44,13 +44,15 @@ Another common use-case is to just add a div/span tag with a class to a set of t
 
 * The half-lozenge
 
+For the most part you'll use the ◊-char to write =lozenge= expressions. However there's also a /half-lozenge/ ⟠-char available. When exporting the half-lozenges is evaluated before the regular lozenges.
+
 In =org-mode= there are two hooks named =org-export-before-parsing-hook= and =org-export-before-processing-hook=. Processing is done before parsing (see the documentation on these variables for more information). The code which replaces lozenge ◊ is run in =org-export-before-parsing-hook=, which is usually what you want. However if you want to do replacements in =org-export-before-processing-hook= you can do so by using the /half-lozenge/ ⟠, otherwise it has the same functionality as the normal lozenge.
 
 * I don't like lozenges...
 
-You can change the chars used by =org-lozenge= by modifying =org-lozenge-before-parsing-char= (◊ by default) and =org-lozenge-before-processing-char= (⟠ by default).
+You can change the chars used by =lozenge= by modifying =lozenge-before-parsing-char= (◊ by default) and =lozenge-before-processing-char= (⟠ by default).
 
-* Examples
+* Org-mode examples
 
 If you want to define functions which should only be used in your document,  you could put a source block near the top of your file with =emacs lisp :exports results :results none= as the header args.
 
@@ -71,6 +73,8 @@ If you want to define functions which should only be used in your document,  you
 
 Now you could use =◊fa{coffee}= to get the icon. If you want a solid icon, you could write =◊(fa "s"){coffee}= instead. If you wanted to apply other classes, that would be =◊(fa "s" "fa-xs" "fa-rotate-180"){coffee}=.
 
+We could do something similar without =lozenge= in =org-mode= by using [[https://orgmode.org/manual/Structure-of-code-blocks.html][inline source blocks]]. However the syntax would be a bit more cluttered (and in my opinion a bit harder to remember): =src_emacs-lisp[:results html]{(xmlgen (loz/fa "coffee"))}=. Ofcourse the =xmlgen= part isn't needed if we put it directly into the =loz/fa= function though. Another way of doing it would be to add a [[https://orgmode.org/manual/Macro-replacement.html][replacement macro]], but those doesn't accept optional arguments (though you could define three separate macros to get the functionality of =loz/fa=).
+
 ** Example 2: Bridge hands
 
 I like to play contract bridge (a card game) and often I want to notate a hand of cards. This is usually done by writing suit symbols followed by the cards, similar to this: ♠KJ82 ♥AK3 ♦J8532 ♣Q. Let's say I want a function for that.
@@ -88,8 +92,8 @@ Now I could write =◊hand[KJ82][AK3][J8532][Q]=. The reason for using format-ar
 
 #+BEGIN_SRC emacs-lisp
   (defun loz/hand2 (hand-text)
-    (org-lozenge-list-to-org-html
-     `(span :class "hand"
+    (lozenge-list-to-org-html
+     '(span :class "hand"
             (span :class "suit" "♠" "%s")
             (span :class "suit" "♥" "%s")
             (span :class "suit" "♦" "%s")
@@ -97,7 +101,22 @@ Now I could write =◊hand[KJ82][AK3][J8532][Q]=. The reason for using format-ar
      (split-string hand-text " ")))
 #+END_SRC
 
-=org-lozenge-list-to-org-html= takes the list as the first argument, and the format-args as the second argument. Using this we could write =◊hand2{KJ82 AK3 J8532 Q}=.
+=lozenge-list-to-org-html= takes the list as the first argument, and the format-args as the second argument. Using this we could write =◊hand2{KJ82 AK3 J8532 Q}=.
+
+If you were to do this in =org-mode= without =lozenge= then you'd probably rewrite the function into something like this:
+
+#+BEGIN_SRC emacs-lisp
+  (defun loz/hand3 (hand-text)
+    (apply 'format
+           (xmlgen '(span :class "hand"
+                          (span :class "suit" "♠" "%s")
+                          (span :class "suit" "♥" "%s")
+                          (span :class "suit" "♦" "%s")
+                          (span :class "suit" "♣" "%s")))
+           (split-string hand-text " ")))
+#+END_SRC
+
+Now we could use =src_emacs-lisp[:results html]{(loz/hand3 "KJ82 AK3 J8532 Q")}= to insert the hand. However now it isn't possible to use =org-mode= markup inside of the hand string. I tried various ways of getting that to work, but couldn't figure it out. If anyone has a solution, please leave a pull request.
 
 ** Example 3: Bridge deal diagram
 
@@ -122,7 +141,7 @@ We take a normal org-table and wrap it in a div with the class =deal= and put th
            (east  (mapcar #'caddr (-slice lisp-table 4 8)))
            (south (mapcar #'cadr  (-slice lisp-table 8 12))))
       (org-lozenge-list-to-org-html
-       `(table :class deal
+       '(table :class deal
                (tr (td)
                    (td "%s")
                    (td))
@@ -156,6 +175,58 @@ Now we could use the following to notate our deal:
   |       | T642   |        |
   }
 #+END_SRC
+
+Doing this in =org-mode= without =lozenge= we could use source-blocks with =var= header-arguments. We could then call the source-block using the =#+call= syntax. However we'd have to hide our  input table somehow, because otherwise the table would show on export . Here's one solution (if anyone has a better one, please send a pull request), it uses =loz/hand3= from example 2 above:
+
+#+BEGIN_SRC org
+
+  ,* Data                             :noexport:
+
+    ,#+name: loz/deal2
+    ,#+header: :var table=0 :results html :exports none
+    ,#+begin_src emacs-lisp
+      (let* ((north (mapcar #'cadr (-take 4 table)))
+             (west  (mapcar #'car   (-slice table 4 8)))
+             (east  (mapcar #'caddr (-slice table 4 8)))
+             (south (mapcar #'cadr  (-slice table 8 12))))
+        (format
+         (xmlgen
+          `(table :class "deal"
+                  (tr (td)
+                      (td "%s")
+                      (td))
+                  (tr (td "%s")
+                      (td)
+                      (td "%s"))
+                  (tr (td)
+                      (td "%s")
+                      (td))))
+         (loz/hand3 (string-join north " "))
+         (loz/hand3 (string-join west " "))
+         (loz/hand3 (string-join east " "))
+         (loz/hand3 (string-join south " "))))
+    ,#+end_src
+
+    ,#+tblname: deal1
+    |       | QJ     |        |
+    |       | "94"   |        |
+    |       | Q87543 |        |
+    |       | "853"  |        |
+    | T8652 |        | "9"    |
+    | "32"  |        | KQJT86 |
+    | KJT9  |        | A6     |
+    | A7    |        | KQJ9   |
+    |       | AK743  |        |
+    |       | A75    |        |
+    |       | "2"    |        |
+    |       | T642   |        |
+
+  ,* Real document
+
+    ,#+call: loz/deal2(table=deal1)
+#+END_SRC
+
+Notice that we have to add quotes around the numbers in the table, otherwise =org-mode= won't treat them as strings.
 
 * Wishlist
 
